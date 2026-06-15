@@ -1,0 +1,44 @@
+[project]
+name = "udp-tts"
+version = "0.1.0"
+description = "UDP streaming for Qwen3-TTS audio (server + real-time client)"
+readme = "README.md"
+# Qwen3-TTS targets Python 3.12. uv manages the interpreter on every host
+# (including macOS), so the client side gets 3.12 too without touching system
+# Python.
+requires-python = ">=3.12"
+# Shared by both server and client.
+dependencies = [
+    "numpy>=1.21",
+]
+
+[project.scripts]
+udp-tts-server = "udp_tts.server:main"
+udp-tts-client = "udp_tts.client:main"
+
+# PEP 735 dependency groups. Groups are NOT installed by default, so a bare
+# `uv sync` gets only the shared base. Install one side explicitly:
+#
+#   uv sync --group client      # Mac / playback host  (base + sounddevice)
+#   uv sync --group server      # GPU host             (base + qwen-tts + torch)
+#
+# `--group` keeps the shared base; use `--only-group X` to install a group
+# without the project itself.
+[dependency-groups]
+client = [
+    "sounddevice>=0.4.6",  # wheels bundle PortAudio; no system install needed
+]
+server = [
+    "torch",
+    "qwen-tts",
+    "soundfile",
+    # Optional speedup (needs build tooling + CUDA):
+    #   uv pip install -U flash-attn --no-build-isolation
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/udp_tts"]

@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Project-specific
+*.wav        # streamed/saved TTS audio
+.DS_Store
