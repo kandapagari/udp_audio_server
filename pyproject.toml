@@ -15,6 +15,7 @@ dependencies = [
 [project.scripts]
 udp-tts-server = "udp_tts.server:main"
 udp-tts-client = "udp_tts.client:main"
+udp-tts-read = "udp_tts.reader:main"
 
 # PEP 735 dependency groups. Groups are NOT installed by default, so a bare
 # `uv sync` gets only the shared base. Install one side explicitly:
@@ -27,6 +28,10 @@ udp-tts-client = "udp_tts.client:main"
 [dependency-groups]
 client = [
     "sounddevice>=0.4.6",  # wheels bundle PortAudio; no system install needed
+    # Book reading (udp-tts-read). .txt/.md are native; markitdown converts
+    # everything else to Markdown. EPUB/HTML/CSV/JSON/XML are in markitdown's
+    # base; these extras add PDF, Word, PowerPoint and Excel.
+    "markitdown[pdf,docx,pptx,xlsx]>=0.1.1",
 ]
 server = [
     "torch",

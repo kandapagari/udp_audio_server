@@ -30,8 +30,10 @@ heavy loss is audible as gaps — acceptable for streaming, unlike a file downlo
 | [`src/udp_tts/tts_engine.py`](src/udp_tts/tts_engine.py) | `TTSEngine` interface, `MockTTSEngine`, `Qwen3TTSEngine` |
 | [`src/udp_tts/server.py`](src/udp_tts/server.py) | UDP server: receives text, streams paced PCM packets |
 | [`src/udp_tts/client.py`](src/udp_tts/client.py) | UDP client: jitter buffer + real-time playback / WAV save |
+| [`src/udp_tts/book.py`](src/udp_tts/book.py) · [`chunker.py`](src/udp_tts/chunker.py) · [`reader.py`](src/udp_tts/reader.py) | Book loading (txt/md native; epub/pdf/docx/… via markitdown), TTS chunking, and whole-book narration (`udp-tts-read`) |
 | [`scripts/run_server.py`](scripts/run_server.py) · [`scripts/run_client.py`](scripts/run_client.py) | Plain-`python` entry points (uv-free fallback) |
-| [`tests/`](tests) | Protocol round-trip + jitter-buffer behavior tests |
+| [`tests/`](tests) | Protocol, jitter-buffer, chunker, and book-loader tests |
+| [`macos-client/`](macos-client) | Native SwiftUI **menu-bar** client (verified byte-compatible with this server) — see its [README](macos-client/README.md) |
 
 ## Environment ([uv](https://docs.astral.sh/uv/) + dependency groups)
 
@@ -120,6 +122,27 @@ chunk is a mono float32 numpy array in `[-1, 1]`. Register it in `build_engine`.
 4-byte header (`magic "QT"`, version, type) + type-specific body. Audio is
 little-endian signed 16-bit PCM. Payloads stay under ~1100 bytes to avoid IP
 fragmentation. See [`protocol.py`](src/udp_tts/protocol.py) for exact layouts.
+
+## Reading a book
+
+`udp-tts-read` loads a book, splits it into TTS-friendly chunks (sentence-aware,
+capped at `--max-chars`), and narrates it chunk-by-chunk through the same UDP
+pipeline. `.txt`/`.md` are parsed natively; everything else —
+`.epub`, `.pdf`, `.docx`, `.pptx`, `.xlsx`, `.html`, `.csv`, `.json`, `.xml` —
+is converted to Markdown by [markitdown](https://github.com/microsoft/markitdown)
+(in the `client` group) and run through the same chapter-splitter. Chapters come
+from Markdown headings, or a "Chapter N" heuristic when there are none.
+
+```bash
+uv run udp-tts-read mybook.epub --host <server> --port 50007   # narrate live
+uv run udp-tts-read mybook.pdf --output audiobook.wav          # render to one WAV
+uv run udp-tts-read mybook.md --list-chapters                  # inspect structure
+uv run udp-tts-read book.txt --start-chapter 3 --speaker Ryan  # resume + voice
+```
+
+Book loading + chunking is purely client-side — the server stays stateless
+(text in, audio out). The macOS app has the same feature with a file picker and
+transport controls (see [macos-client](macos-client/README.md)).
 
 ## Tests
 
