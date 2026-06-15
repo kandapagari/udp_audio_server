@@ -13,10 +13,13 @@ layer never depends on a specific model. Two implementations ship here:
 of mono float32 numpy arrays in [-1, 1]. The server packetizes them.
 """
 
+import logging
 from abc import ABC, abstractmethod
 from typing import Iterator, Tuple
 
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 
 class TTSEngine(ABC):
@@ -93,10 +96,21 @@ class Qwen3TTSEngine(TTSEngine):
         default_language: str = "English",
         default_speaker: str = "Ryan",
         chunk_ms: int = 40,
-        attn_implementation: str = "flash_attention_2",
+        attn_implementation: str = "auto",
     ):
         import torch  # noqa: F401  (validates the dependency is present)
         from qwen_tts import Qwen3TTSModel
+
+        if attn_implementation == "auto":
+            try:
+                import flash_attn  # noqa: F401
+                attn_implementation = "flash_attention_2"
+            except ImportError:
+                attn_implementation = "sdpa"
+                log.warning(
+                    "flash-attn not installed; falling back to sdpa attention. "
+                    "Install with: uv pip install flash-attn --no-build-isolation"
+                )
 
         self._default_language = default_language
         self._default_speaker = default_speaker

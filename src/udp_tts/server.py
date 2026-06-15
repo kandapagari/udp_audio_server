@@ -149,6 +149,12 @@ def main(argv=None) -> None:
     parser.add_argument("--model", default="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
                         help="model name for the qwen engine")
     parser.add_argument("--device", default="cuda:0", help="device for the qwen engine")
+    parser.add_argument(
+        "--attn-implementation",
+        default="auto",
+        choices=["auto", "flash_attention_2", "sdpa", "eager"],
+        help="attention backend (default: auto — uses flash_attention_2 if available, else sdpa)",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -159,7 +165,11 @@ def main(argv=None) -> None:
 
     engine_kwargs = {}
     if args.engine.lower().startswith("qwen"):
-        engine_kwargs = {"model_name": args.model, "device": args.device}
+        engine_kwargs = {
+            "model_name": args.model,
+            "device": args.device,
+            "attn_implementation": args.attn_implementation,
+        }
     engine = build_engine(args.engine, **engine_kwargs)
 
     server = TTSServer(engine, host=args.host, port=args.port)

@@ -32,9 +32,20 @@ server = [
     "torch",
     "qwen-tts",
     "soundfile",
-    # Optional speedup (needs build tooling + CUDA):
-    #   uv pip install -U flash-attn --no-build-isolation
+    # flash-attn enables the faster flash_attention_2 path (the engine falls
+    # back to sdpa automatically if it is missing). We pin a prebuilt wheel via
+    # [tool.uv.sources] below to avoid compiling against CUDA headers. The wheel
+    # is built for a specific Python/torch/CUDA/platform combo, so the marker
+    # restricts it to the linux x86_64 + CPython 3.13 GPU host it targets.
+    "flash-attn ; sys_platform == 'linux' and platform_machine == 'x86_64' and python_full_version >= '3.13' and python_full_version < '3.14'",
 ]
+
+# Prebuilt flash-attn wheel from mjun0812/flash-attention-prebuild-wheels.
+# Must match the server host's CPython/torch/CUDA: cp313 + torch 2.12 + cu130
+# on linux x86_64. If you upgrade torch or Python, pick the matching wheel from
+# https://github.com/mjun0812/flash-attention-prebuild-wheels/releases
+[tool.uv.sources]
+flash-attn = { url = "https://github.com/mjun0812/flash-attention-prebuild-wheels/releases/download/v0.9.17/flash_attn-2.8.3%2Bcu130torch2.12-cp313-cp313-linux_x86_64.whl" }
 
 [build-system]
 requires = ["hatchling"]
